@@ -1,0 +1,19 @@
+# Build
+build/
+*.o
+*.out
+*.exe
+
+# Du lieu lon sinh bang gen_data (khong commit)
+data/large/
+*.bin
+
+# Python
+.venv/
+__pycache__/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,10 @@
+# Luon dung LF cho ma nguon va script (ca nhom dung Windows: tranh loi $'\r' khi chay bash)
+* text=auto eol=lf
+*.sh  text eol=lf
+# Script PowerShell/batch chay tren Windows giu CRLF
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.pdf binary
+*.png binary
+*.docx binary
+*.pptx binary
