@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-/* Thoi gian tung pha (giay, do bang omp_get_wtime)
+/* Thoi gian tung pha (giay, do bang omp_get_wtime) */
 typedef struct {
     double t_io;      /* doc file */
     double t_init;    /* cap phat, sinh du lieu, memset histogram */
