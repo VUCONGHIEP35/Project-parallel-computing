@@ -37,3 +37,32 @@ Header 32 byte, little-endian, rồi đến mảng thô `n` phần tử.
 ### Ảnh
 
 PGM nhị phân P5, maxval 255, đọc/ghi bằng `io_pgm.c` (không dùng thư viện ngoài).
+
+## Tích vô hướng
+
+### Hàm
+
+Khai báo trong `include/dot.h`, cài đặt trong `src/dot/`. Mọi phương án cùng chữ ký `dot_fn`:
+
+```c
+double dot_xxx(const float *a, const float *b, size_t n, timing_t *tm);
+```
+
+- Đầu vào `float` (sinh bằng `dataset_generate`), cộng dồn và trả về `double`.
+- `n = 0` trả về 0; khi đó `a`, `b` được phép là `NULL`. `tm` được phép là `NULL`.
+
+| Tên | Mô tả | Trạng thái |
+|---|---|---|
+| `dot_seq` | D0, tuần tự: mốc speedup, đáp án đối chiếu | có |
+
+### Đối chiếu kết quả
+
+Thứ tự cộng thay đổi theo số thread nên bản song song có thể lệch vài chữ số cuối so với D0. Bản song song đạt nếu `|r - r_D0| / |r_D0| < 1e-6`.
+
+### CSV của `dot_bench`
+
+Cột: `version,n,threads,time_s,gbps,result`.
+
+- `time_s`: thời gian một lần gọi (trung vị 5 lần đo; `n` nhỏ thì lặp nhiều lần rồi chia).
+- `gbps`: băng thông bộ nhớ đạt được = `8 · n / time_s / 10^9` (đọc 2 `float` mỗi phần tử).
+- Dữ liệu: `a` = uniform seed 1, `b` = uniform seed 2.
