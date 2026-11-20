@@ -7,10 +7,10 @@
 /* 6 phan phoi cua de bai. Ten trong CSV va dong lenh lay tu dist_name(). */
 typedef enum {
     DIST_UNIFORM = 0, /* "uniform"  deu tren [0,1)                       */
-    DIST_NORMAL,      /* "normal"   mu = 0.5, sigma = 0.05, kep ve [0,1) */
+    DIST_NORMAL,      /* "normal"   mu = 0.5, sigma = 0.05, trong [0.2,0.8] */
     DIST_ZIPF11,      /* "zipf1.1"  Zipf s = 1.1                          */
     DIST_ZIPF15,      /* "zipf1.5"  Zipf s = 1.5                          */
-    DIST_ONEBIN,      /* "onebin"   moi phan tu cung mot gia tri          */
+    DIST_ONEBIN,      /* "onebin"   moi phan tu bang 0.3                  */
     DIST_SORTED,      /* "sorted"   uniform da sap xep tang dan           */
     DIST_COUNT
 } dist_t;
