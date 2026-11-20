@@ -4,6 +4,7 @@
 #include "dot.h"
 
 #include <math.h>
+#include <omp.h>
 #include <stdio.h>
 
 static int fail = 0;
@@ -91,11 +92,77 @@ static void test_uniform(void) {
     dataset_free(&ONE);
 }
 
+/* Cac phuong an song song can doi chieu voi D0. Them D2.. vao day. */
+static const struct { const char *name; dot_fn f; } VARIANTS[] = {
+    { "dot_reduce", dot_reduce },
+};
+#define NVARIANTS (sizeof VARIANTS / sizeof VARIANTS[0])
+
+/* Thu tu cong khac D0 nen khong bang tuyet doi: so voi Kahan bang sai so tuong doi. */
+static void test_variants(void) {
+    const int threads[] = { 1, 2, 4, 8 };
+    char msg[160];
+
+    const size_t N = 1000003; /* khong chia het cho T */
+    dataset_t A, B;
+    if (dataset_generate(&A, DIST_UNIFORM, N, 1) != 0 ||
+        dataset_generate(&B, DIST_UNIFORM, N, 2) != 0) {
+        CHECK(0, "sinh du lieu cho test_variants");
+        return;
+    }
+    double ref = dot_kahan(A.x, B.x, N);
+
+    for (size_t v = 0; v < NVARIANTS; v++) {
+        printf(" %s\n", VARIANTS[v].name);
+        dot_fn f = VARIANTS[v].f;
+        for (size_t k = 0; k < sizeof threads / sizeof threads[0]; k++) {
+            int T = threads[k];
+            omp_set_num_threads(T);
+
+            /* ca biet truoc, bien */
+            const float a[] = { 1, 2, 3 }, b[] = { 4, 5, 6 };
+            snprintf(msg, sizeof msg, "T=%d: {1,2,3}.{4,5,6} = 32 (n < T khi T > 3)", T);
+            CHECK(f(a, b, 3, NULL) == 32.0, msg);
+            snprintf(msg, sizeof msg, "T=%d: n = 0 -> 0 (a, b = NULL)", T);
+            CHECK(f(NULL, NULL, 0, NULL) == 0.0, msg);
+            const float c[] = { 3 }, d[] = { -2 };
+            snprintf(msg, sizeof msg, "T=%d: n = 1 -> -6", T);
+            CHECK(f(c, d, 1, NULL) == -6.0, msg);
+
+            /* a[i] = i, b[i] = 1 -> n(n-1)/2, so nguyen nho nen chinh xac tuyet doi */
+            enum { M = 1000 };
+            static float ai[M], bi[M];
+            for (int i = 0; i < M; i++) { ai[i] = (float)i; bi[i] = 1.0f; }
+            snprintf(msg, sizeof msg, "T=%d: a[i]=i, b[i]=1 -> n(n-1)/2", T);
+            CHECK(f(ai, bi, M, NULL) == (double)M * (M - 1) / 2, msg);
+
+            /* so voi Kahan, lap 20 lan de bat race */
+            int ok = 1;
+            for (int r = 0; r < 20; r++) {
+                double got = f(A.x, B.x, N, NULL);
+                if (fabs(got - ref) / fabs(ref) >= 1e-9) ok = 0;
+            }
+            snprintf(msg, sizeof msg, "T=%d: sai so tuong doi so voi Kahan < 1e-9 (20 lan)", T);
+            CHECK(ok, msg);
+
+            timing_t tm;
+            f(A.x, B.x, N, &tm);
+            snprintf(msg, sizeof msg, "T=%d: timing hop le", T);
+            CHECK(tm.t_compute >= 0 && tm.t_total >= tm.t_compute, msg);
+        }
+    }
+    omp_set_num_threads(omp_get_num_procs());
+    dataset_free(&A);
+    dataset_free(&B);
+}
+
 int main(void) {
     printf("test_dot: D0 dot_seq\n");
     test_known();
     test_double_accumulator();
     test_uniform();
+    printf("test_dot: cac phuong an song song\n");
+    test_variants();
     printf(fail ? "KET QUA: LOI\n" : "KET QUA: DAT\n");
     return fail;
 }
