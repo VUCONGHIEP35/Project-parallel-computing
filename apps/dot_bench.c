@@ -41,7 +41,8 @@ int main(int argc, char **argv) {
 
     struct { const char *name; dot_fn f; int parallel; } V[] = {
         { "dot_seq", dot_seq, 0 },
-        /* them D1..D5 o day */
+        { "dot_reduce", dot_reduce, 1 },
+        /* them D2.. o day */
     };
     size_t nv = sizeof V / sizeof V[0];
 

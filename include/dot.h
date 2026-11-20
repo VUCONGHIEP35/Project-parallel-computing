@@ -14,6 +14,7 @@ typedef double (*dot_fn)(const float *a, const float *b, size_t n, timing_t *tm)
 
 /* Cac phuong an (cai dat trong src/dot/). Ten ham = ten trong CSV. */
 double dot_seq(const float *a, const float *b, size_t n, timing_t *tm); /* D0 - tuan tu */
-/* D1..D5 (critical, atomic, partial, partial_fs, reduce, simd) se khai bao them o day */
+double dot_reduce(const float *a, const float *b, size_t n, timing_t *tm); /* D1 - reduction(+:s) */
+/* D2.. (partial, partial_fs, atomic, simd) se khai bao them o day */
 
 #endif
