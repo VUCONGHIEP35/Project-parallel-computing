@@ -47,9 +47,29 @@ Header 32 byte, little-endian, rồi đến mảng thô `n` phần tử.
 
 `dataset_load` báo lỗi nếu sai magic, sai version hoặc file ngắn hơn `32 + n × kích thước phần tử`.
 
+Phiên bản 1 chỉ ghi `float32` (`dataset_save` ghi `ds->x`); ảnh dùng PGM. Mảng số được ghi nguyên khối nên máy phải là little-endian (x86, ARM thông dụng); `dataset_save`/`dataset_load` tự báo lỗi trên máy big-endian.
+
 ### Ảnh
 
-PGM nhị phân P5, maxval 255, đọc/ghi bằng `io_pgm.c` (không dùng thư viện ngoài).
+PGM nhị phân P5, maxval 255, đọc/ghi bằng `io_pgm.c` (không dùng thư viện ngoài). Header được phép có dòng chú thích `#`.
+
+| Hàm | Việc |
+|---|---|
+| `pgm_save(path, px, w, h)` | ghi ảnh |
+| `pgm_load(path, &ds)` | đọc vào `ds.px`, `ds.w`, `ds.h`, `ds.n = w·h` |
+| `dataset_generate_image(&ds, w, h, seed)` | sinh ảnh tổng hợp cho E5: sáng dần theo hàng + nhiễu, cùng seed cùng ảnh |
+| `dataset_pixels_to_unit(&ds)` | tạo `ds.x[i] = px[i] / 256` để đưa ảnh vào `hist_fn` |
+
+**Đưa ảnh vào `hist_fn` (đề xuất, chờ nhóm xác nhận):** đổi điểm ảnh p thành x = p / 256. Phép chia này chính xác trong `float`, nên với B là lũy thừa của 2 và B ≤ 256 thì `bin_of(x, B) = p·B/256`, đúng bin của ảnh gốc. Mảng `x` tốn gấp 4 lần bộ nhớ ảnh; thời gian đổi tính vào `t_init`.
+
+### Chương trình `gen_data`
+
+```bash
+gen_data <phan_phoi> <n> <seed> <file.bin>      # vd: gen_data zipf1.5 1e8 1 ~/data/zipf15_1e8.bin
+gen_data image <rong> <cao> <seed> <file.pgm>   # vd: gen_data image 4096 4096 1 ~/data/img4096.pgm
+```
+
+File dữ liệu lớn để ngoài repo (ví dụ `~/data`), không commit.
 
 ## Tích vô hướng
 
