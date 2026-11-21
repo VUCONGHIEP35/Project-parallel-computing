@@ -1,8 +1,10 @@
 /* Test histogram (B). Chay: make test
- * Hien chi kiem V0 (hist_seq). Khi co V1-V4, them vao bang VARIANTS de doi chieu voi V0. */
+ * Kiem bin_of, V0 (hist_seq) va moi ban trong bang VARIANTS (doi chieu tung bin voi V0).
+ * Khi co V1, V2, V3b, V4: them mot dong vao VARIANTS. */
 #include "dataset.h"
 #include "hist.h"
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -160,8 +162,47 @@ static void test_variants_dists(void) {
     }
 }
 
+/* bin_of o gia tri dac biet. Doc qua volatile de compiler khong tinh san luc bien dich. */
+static void test_bin_of(void) {
+    static volatile float v[] = {
+        NAN, -NAN, INFINITY, -INFINITY, 1e30f, -1e30f,   /* 0..5: truoc day la hanh vi khong xac dinh */
+        -0.0f, 0.0f, 1e-45f,                             /* 6..8: -0, 0, so duoi chuan */
+        0.99999994f, 1.0f, 0.25f                         /* 9..11: sat 1, bang 1, bien bin */
+    };
+    const int BINS[] = { 1, 4, 16, 1 << 20, 1 << 24 };
+    int ok = 1;
+    for (size_t k = 0; k < sizeof BINS / sizeof BINS[0]; k++) {
+        int B = BINS[k];
+        int want[] = { 0, 0, B - 1, 0, B - 1, 0, 0, 0, 0, B - 1, B - 1, B / 4 };
+        for (size_t i = 0; i < sizeof want / sizeof want[0]; i++) {
+            int got = bin_of(v[i], B);
+            if (got != want[i]) {
+                printf("    bin_of(%g, %d) = %d, can %d\n", (double)v[i], B, got, want[i]);
+                ok = 0;
+            }
+        }
+    }
+    CHECK(ok, "bin_of: NaN, +-inf, +-1e30, -0, duoi chuan, sat 1 (bins = 1..2^24)");
+
+    /* Du lieu co NaN/inf: moi ban phai cho cung ket qua voi V0 va tong bin == n */
+    float x[64];
+    for (int i = 0; i < 64; i++) x[i] = (float)i / 64.0f;
+    x[3] = NAN; x[10] = INFINITY; x[20] = -INFINITY; x[30] = 1e30f; x[40] = -0.0f;
+    uint64_t want[16], got[16];
+    hist_seq(x, 64, 16, want, NULL);
+    CHECK(sum_bins(want, 16) == 64 && want[0] == 4 + 2 && want[15] == 4 + 2,
+          "hist_seq: du lieu co NaN/inf -> bin 0 va bin cuoi, tong == n");
+    for (size_t v2 = 0; v2 < NVAR; v2++) {
+        char msg[128];
+        VARIANTS[v2].fn(x, 64, 16, got, NULL);
+        snprintf(msg, sizeof msg, "%s: du lieu co NaN/inf khop V0", VARIANTS[v2].name);
+        CHECK(memcmp(want, got, sizeof want) == 0, msg);
+    }
+}
+
 int main(void) {
     printf("test_hist: V0 hist_seq\n");
+    test_bin_of();
     test_known();
     test_edges();
     test_empty_and_onebin();

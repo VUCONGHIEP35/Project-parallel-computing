@@ -16,12 +16,15 @@ typedef struct {
 /* Moi phuong an: dem n phan tu x[i] trong [0,1) vao `bins` bin, ghi ket qua vao out[0..bins-1]. */
 typedef void (*hist_fn)(const float *x, size_t n, int bins, uint64_t *out, timing_t *tm);
 
-/* bin(x) = min(floor(x * bins), bins - 1); x < 0 kep ve 0. */
+/* bin(x) = min(floor(x * bins), bins - 1); x <= 0 va NaN vao bin 0, x >= 1 va +inf vao bin cuoi.
+ * So sanh truoc, ep kieu sau: (int) cua NaN, +-inf, 1e30 la hanh vi khong xac dinh trong C.
+ * Dieu kien: 1 <= bins <= 2^24 (bins bieu dien dung bang float).
+ * Khong bien dich voi -ffast-math: co nay cho phep bo phep so sanh voi NaN. */
 static inline int bin_of(float x, int bins) {
-    int b = (int)(x * (float)bins);
-    if (b < 0) return 0;
-    if (b >= bins) return bins - 1;
-    return b;
+    if (!(x > 0.0f)) return 0;          /* x <= 0, -0, NaN (moi so sanh voi NaN deu false) */
+    if (x >= 1.0f) return bins - 1;     /* x >= 1, +inf */
+    int b = (int)(x * (float)bins);     /* 0 < x < 1 -> 0 <= x*bins <= bins: ep kieu an toan */
+    return b < bins ? b : bins - 1;     /* x sat 1 (0.99999994f): x*bins co the lam tron thanh bins */
 }
 
 /* Cac phuong an (cai dat trong src/hist/). Ten ham = ten trong CSV. */

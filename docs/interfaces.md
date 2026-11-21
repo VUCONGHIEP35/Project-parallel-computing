@@ -51,6 +51,55 @@ Header 32 byte, little-endian, rồi đến mảng thô `n` phần tử.
 
 PGM nhị phân P5, maxval 255, đọc/ghi bằng `io_pgm.c` (không dùng thư viện ngoài).
 
+## Histogram (Thành viên B)
+
+### Hàm
+
+Khai báo trong `include/hist.h`, cài đặt trong `src/hist/`. Mọi phương án cùng chữ ký `hist_fn`:
+
+```c
+void hist_xxx(const float *x, size_t n, int bins, uint64_t *out, timing_t *tm);
+```
+
+- Hàm tự xóa `out[0..bins-1]` rồi đếm; người gọi không cần `memset`.
+- `n = 0` cho histogram toàn 0; khi đó `x` được phép là `NULL`. `tm` được phép là `NULL`.
+- Điều kiện: `1 ≤ bins ≤ 2^24` (để `bins` biểu diễn đúng bằng `float`).
+
+| Tên | Mô tả | Người làm | Trạng thái |
+|---|---|---|---|
+| `hist_seq` | V0, tuần tự: mốc speedup, đáp án đối chiếu | B | có |
+| `hist_atomic` | V1, `omp atomic` | A | |
+| `hist_critical` | V2, `omp critical` | A | |
+| `hist_local_serial` | V3a, histogram cục bộ mỗi thread, gộp tuần tự | B | có |
+| `hist_local_parmerge` | V3b, histogram cục bộ, gộp song song theo bin | B | |
+| `hist_omp_reduce` | V4, `reduction(+:out[:bins])` | B | |
+
+### Quy tắc chia bin
+
+Mọi phương án **phải** dùng `bin_of()` trong `hist.h`, không tự tính lại:
+
+| Giá trị `x` | Bin |
+|---|---|
+| `0 < x < 1` | `min(floor(x · bins), bins − 1)` |
+| `x ≤ 0`, `-0`, **NaN**, `-∞` | 0 |
+| `x ≥ 1`, `+∞`, số rất lớn (1e30) | `bins − 1` |
+
+`bin_of` so sánh trước rồi mới ép kiểu, nên không có hành vi không xác định với NaN, ±∞. **Không biên dịch với `-ffast-math`**: cờ này cho phép compiler giả định không có NaN và bỏ phép so sánh.
+
+### Thời gian (`timing_t`)
+
+| Trường | Gồm |
+|---|---|
+| `t_io` | đọc file (0 nếu dữ liệu đã có trong bộ nhớ) |
+| `t_init` | cấp phát và xóa histogram (cả các histogram cục bộ) |
+| `t_compute` | vòng lặp đếm |
+| `t_merge` | gộp các histogram cục bộ vào `out` (0 với V0) |
+| `t_total` | từ đầu đến hết gộp, không tính `free` |
+
+### Đối chiếu kết quả
+
+Đếm số nguyên nên mọi phương án phải cho **đúng từng bin** như V0. Thêm phương án mới vào bảng `VARIANTS` trong `tests/test_hist.c` để được đối chiếu với V0 trên 6 phân phối và nhiều `bins`.
+
 ## Tích vô hướng
 
 ### Hàm
