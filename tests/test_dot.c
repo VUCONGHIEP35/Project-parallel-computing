@@ -95,6 +95,7 @@ static void test_uniform(void) {
 /* Cac phuong an song song can doi chieu voi D0. Them D2.. vao day. */
 static const struct { const char *name; dot_fn f; } VARIANTS[] = {
     { "dot_reduce", dot_reduce },
+    { "dot_partial", dot_partial },
 };
 #define NVARIANTS (sizeof VARIANTS / sizeof VARIANTS[0])
 
@@ -156,6 +157,25 @@ static void test_variants(void) {
     dataset_free(&B);
 }
 
+/* D2 tach duoc 3 pha: init (cap phat), compute (tinh), merge (gop) */
+static void test_partial_timing(void) {
+    const size_t N = 1000000;
+    dataset_t A, B;
+    if (dataset_generate(&A, DIST_UNIFORM, N, 1) != 0 ||
+        dataset_generate(&B, DIST_UNIFORM, N, 2) != 0) {
+        CHECK(0, "sinh du lieu cho test_partial_timing");
+        return;
+    }
+    timing_t tm;
+    dot_partial(A.x, B.x, N, &tm);
+    CHECK(tm.t_init >= 0 && tm.t_compute >= 0 && tm.t_merge >= 0,
+          "dot_partial: t_init, t_compute, t_merge >= 0");
+    CHECK(fabs(tm.t_total - (tm.t_init + tm.t_compute + tm.t_merge)) < 1e-9,
+          "dot_partial: t_total = t_init + t_compute + t_merge");
+    dataset_free(&A);
+    dataset_free(&B);
+}
+
 int main(void) {
     printf("test_dot: D0 dot_seq\n");
     test_known();
@@ -163,6 +183,7 @@ int main(void) {
     test_uniform();
     printf("test_dot: cac phuong an song song\n");
     test_variants();
+    test_partial_timing();
     printf(fail ? "KET QUA: LOI\n" : "KET QUA: DAT\n");
     return fail;
 }
