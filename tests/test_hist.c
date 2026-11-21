@@ -99,6 +99,8 @@ static void test_uniform(void) {
 
 /* ---- Doi chieu cac ban song song voi V0. Them V3b, V4... vao bang nay khi viet xong. ---- */
 static const struct { const char *name; hist_fn fn; } VARIANTS[] = {
+    { "hist_atomic (V1)",        hist_atomic },
+    { "hist_critical (V2)",      hist_critical },
     { "hist_local_serial (V3a)", hist_local_serial },
 };
 #define NVAR (sizeof VARIANTS / sizeof VARIANTS[0])
