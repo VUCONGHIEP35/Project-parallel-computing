@@ -179,6 +179,47 @@ int dataset_generate(dataset_t *ds, dist_t dist, size_t n, uint64_t seed) {
     return rc;
 }
 
+/* ---- Anh xam ---- */
+
+/* Anh tong hop: nen sang dan tu tren xuong (32 -> 224) cong nhieu ~ chuan (tong 4 byte
+ * ngau nhien, do lech khoang 18 muc xam), kep ve [0, 255]. Chi dung so nguyen -> tat dinh. */
+int dataset_generate_image(dataset_t *ds, int w, int h, uint64_t seed) {
+    if (!ds) return -1;
+    memset(ds, 0, sizeof *ds);
+    if (w <= 0 || h <= 0) return -1;
+
+    size_t n = (size_t)w * (size_t)h;
+    uint8_t *px = malloc(n);
+    if (!px) return -1;
+
+    uint64_t s = rng_init(seed);
+    for (int y = 0; y < h; y++) {
+        int base = 32 + (int)((192LL * y) / h);
+        for (int c = 0; c < w; c++) {
+            uint64_t r = xorshift64s(&s);
+            int noise = (int)((r & 0xFF) + ((r >> 8) & 0xFF) + ((r >> 16) & 0xFF)
+                              + ((r >> 24) & 0xFF)) - 510;      /* trong [-510, 510] */
+            int v = base + noise / 8;
+            px[(size_t)y * w + c] = (uint8_t)(v < 0 ? 0 : v > 255 ? 255 : v);
+        }
+    }
+    ds->px = px;
+    ds->w = w;
+    ds->h = h;
+    ds->n = n;
+    return 0;
+}
+
+int dataset_pixels_to_unit(dataset_t *ds) {
+    if (!ds || (!ds->px && ds->n > 0)) return -1;
+    float *x = xaligned_alloc(64, ds->n * sizeof(float));
+    if (!x) return -1;
+    for (size_t i = 0; i < ds->n; i++) x[i] = (float)ds->px[i] * (1.0f / 256.0f);
+    xaligned_free(ds->x);
+    ds->x = x;
+    return 0;
+}
+
 void dataset_free(dataset_t *ds) {
     if (!ds) return;
     xaligned_free(ds->x);

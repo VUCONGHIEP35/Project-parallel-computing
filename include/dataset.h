@@ -33,8 +33,22 @@ const char *dist_name(dist_t dist);
 /* Nguoc lai cua dist_name; tra ve -1 neu ten khong hop le. */
 int dist_from_name(const char *name);
 
-/* Doc/ghi file .bin (dinh dang o docs/interfaces.md). Cai dat trong io_bin.c. */
+/* Doc/ghi file .bin (dinh dang o docs/interfaces.md). Cai dat trong io_bin.c.
+ * Chi ghi mang so thuc ds->x. Tra ve 0 neu thanh cong, -1 neu loi. */
 int dataset_save(const char *path, const dataset_t *ds, dist_t dist, uint64_t seed);
 int dataset_load(const char *path, dataset_t *ds);
+
+/* ---- Anh xam 8-bit (cai dat trong io_pgm.c va dataset.c) ---- */
+
+/* Ghi/doc anh PGM nhi phan (P5, maxval 255). pgm_load dien ds->px, w, h, n = w*h; ds->x = NULL. */
+int pgm_save(const char *path, const uint8_t *px, int w, int h);
+int pgm_load(const char *path, dataset_t *ds);
+
+/* Sinh anh tong hop w x h (do sang tang dan theo hang + nhieu), cung seed -> cung anh. */
+int dataset_generate_image(dataset_t *ds, int w, int h, uint64_t seed);
+
+/* Doi diem anh p sang so thuc x = p / 256 (chinh xac trong float) de dua vao hist_fn.
+ * Voi B la luy thua cua 2 va B <= 256: bin_of(x, B) = p * B / 256. Cap phat ds->x. */
+int dataset_pixels_to_unit(dataset_t *ds);
 
 #endif
