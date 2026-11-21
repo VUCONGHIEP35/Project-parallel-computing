@@ -97,12 +97,77 @@ static void test_uniform(void) {
     dataset_free(&ds);
 }
 
+/* ---- Doi chieu cac ban song song voi V0. Them V3b, V4... vao bang nay khi viet xong. ---- */
+static const struct { const char *name; hist_fn fn; } VARIANTS[] = {
+    { "hist_local_serial (V3a)", hist_local_serial },
+};
+#define NVAR (sizeof VARIANTS / sizeof VARIANTS[0])
+
+static void test_variants_small(void) {
+    const float x[] = { 0.0f, 0.1f, 0.25f, 0.49f, 0.5f, 0.74f, 0.75f, 0.99f, 0.999f, 1.0f, 1.5f, -0.5f };
+    const size_t n = sizeof x / sizeof x[0];
+    char msg[128];
+    for (size_t v = 0; v < NVAR; v++) {
+        for (int bins = 1; bins <= 17; bins++) {          /* ca bins khong chia het cho 8 */
+            uint64_t want[17], got[17];
+            memset(got, 0xFF, sizeof got);                 /* rac san, ham phai tu xoa */
+            hist_seq(x, n, bins, want, NULL);
+            VARIANTS[v].fn(x, n, bins, got, NULL);
+            if (memcmp(want, got, (size_t)bins * sizeof *got) != 0) {
+                snprintf(msg, sizeof msg, "%s: n nho, bins = %d khop V0", VARIANTS[v].name, bins);
+                CHECK(0, msg);
+                return;
+            }
+        }
+        snprintf(msg, sizeof msg, "%s: n = 12 (< so thread), bins = 1..17 khop V0", VARIANTS[v].name);
+        CHECK(1, msg);
+
+        uint64_t h[16];
+        memset(h, 0xFF, sizeof h);
+        VARIANTS[v].fn(NULL, 0, 16, h, NULL);
+        snprintf(msg, sizeof msg, "%s: n = 0 -> histogram toan 0", VARIANTS[v].name);
+        CHECK(sum_bins(h, 16) == 0, msg);
+    }
+}
+
+static void test_variants_dists(void) {
+    const size_t N = 1000000;
+    const int BINS[] = { 1, 16, 256, 4096, 65536, 1 << 20 };
+    char msg[128];
+    for (int d = 0; d < DIST_COUNT; d++) {
+        dataset_t ds;
+        if (dataset_generate(&ds, (dist_t)d, N, 42) != 0) { CHECK(0, "sinh du lieu"); continue; }
+        for (size_t k = 0; k < sizeof BINS / sizeof BINS[0]; k++) {
+            int bins = BINS[k];
+            uint64_t *want = malloc((size_t)bins * sizeof *want);
+            uint64_t *got  = malloc((size_t)bins * sizeof *got);
+            hist_seq(ds.x, ds.n, bins, want, NULL);
+            for (size_t v = 0; v < NVAR; v++) {
+                timing_t tm;
+                memset(got, 0xFF, (size_t)bins * sizeof *got);
+                VARIANTS[v].fn(ds.x, ds.n, bins, got, &tm);
+                snprintf(msg, sizeof msg, "%s: dist %d, bins = %d khop V0", VARIANTS[v].name, d, bins);
+                CHECK(memcmp(want, got, (size_t)bins * sizeof *got) == 0, msg);
+                if (bins == 256 && d == DIST_UNIFORM) {
+                    snprintf(msg, sizeof msg, "%s: timing hop le", VARIANTS[v].name);
+                    CHECK(tm.t_init >= 0 && tm.t_compute >= 0 && tm.t_merge >= 0
+                          && tm.t_total >= tm.t_compute + tm.t_merge, msg);
+                }
+            }
+            free(want); free(got);
+        }
+        dataset_free(&ds);
+    }
+}
+
 int main(void) {
     printf("test_hist: V0 hist_seq\n");
     test_known();
     test_edges();
     test_empty_and_onebin();
     test_uniform();
+    test_variants_small();
+    test_variants_dists();
     printf(fail ? "KET QUA: LOI\n" : "KET QUA: DAT\n");
     return fail;
 }
