@@ -87,6 +87,8 @@ double dot_xxx(const float *a, const float *b, size_t n, timing_t *tm);
 | Tên | Mô tả | Trạng thái |
 |---|---|---|
 | `dot_seq` | D0, tuần tự: mốc speedup, đáp án đối chiếu | có |
+| `dot_reduce` | D1, `parallel for reduction(+:s)`: OpenMP tự chia, giữ tổng riêng và gộp | có |
+| `dot_partial` | D2, tự chia khối `[lo, hi)` cho từng thread, tổng riêng trong biến cục bộ, ghi 1 lần vào mảng đệm 64 byte, 1 thread gộp. Tách được `t_init` / `t_compute` / `t_merge` | có |
 
 ### Đối chiếu kết quả
 
