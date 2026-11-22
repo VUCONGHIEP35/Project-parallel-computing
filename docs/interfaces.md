@@ -89,6 +89,7 @@ double dot_xxx(const float *a, const float *b, size_t n, timing_t *tm);
 | `dot_seq` | D0, tuần tự: mốc speedup, đáp án đối chiếu | có |
 | `dot_reduce` | D1, `parallel for reduction(+:s)`: OpenMP tự chia, giữ tổng riêng và gộp | có |
 | `dot_partial` | D2, tự chia khối `[lo, hi)` cho từng thread, tổng riêng trong biến cục bộ, ghi 1 lần vào mảng đệm 64 byte, 1 thread gộp. Tách được `t_init` / `t_compute` / `t_merge` | có |
+| `dot_partial_fs` | D3, phản ví dụ: như D2 nhưng cộng thẳng vào `part[id]` (`volatile`) mỗi vòng lặp và các ô `part[]` sát nhau (8 byte), nên nhiều thread chung một cache line: false sharing. Kết quả đúng, chỉ chậm | có |
 
 ### Đối chiếu kết quả
 

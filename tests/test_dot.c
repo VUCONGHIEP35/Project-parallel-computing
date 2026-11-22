@@ -96,6 +96,7 @@ static void test_uniform(void) {
 static const struct { const char *name; dot_fn f; } VARIANTS[] = {
     { "dot_reduce", dot_reduce },
     { "dot_partial", dot_partial },
+    { "dot_partial_fs", dot_partial_fs },
 };
 #define NVARIANTS (sizeof VARIANTS / sizeof VARIANTS[0])
 

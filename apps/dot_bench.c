@@ -43,7 +43,8 @@ int main(int argc, char **argv) {
         { "dot_seq", dot_seq, 0 },
         { "dot_reduce", dot_reduce, 1 },
         { "dot_partial", dot_partial, 1 },
-        /* them D3.. o day */
+        { "dot_partial_fs", dot_partial_fs, 1 },
+        /* them D4.. o day */
     };
     size_t nv = sizeof V / sizeof V[0];
 
