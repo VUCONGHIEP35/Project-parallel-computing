@@ -16,6 +16,7 @@ typedef double (*dot_fn)(const float *a, const float *b, size_t n, timing_t *tm)
 double dot_seq(const float *a, const float *b, size_t n, timing_t *tm); /* D0 - tuan tu */
 double dot_reduce(const float *a, const float *b, size_t n, timing_t *tm); /* D1 - reduction(+:s) */
 double dot_partial(const float *a, const float *b, size_t n, timing_t *tm); /* D2 - tong rieng, chia va gop thu cong */
-/* D3.. (partial_fs, atomic, simd) se khai bao them o day */
+double dot_partial_fs(const float *a, const float *b, size_t n, timing_t *tm); /* D3 - tong rieng sat nhau: false sharing */
+/* D4.. (atomic, simd) se khai bao them o day */
 
 #endif
