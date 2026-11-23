@@ -88,11 +88,11 @@ void hist_xxx(const float *x, size_t n, int bins, uint64_t *out, timing_t *tm);
 | Tên | Mô tả | Người làm | Trạng thái |
 |---|---|---|---|
 | `hist_seq` | V0, tuần tự: mốc speedup, đáp án đối chiếu | B | có |
-| `hist_atomic` | V1, `omp atomic` | A | |
-| `hist_critical` | V2, `omp critical` | A | |
+| `hist_atomic` | V1, `omp atomic` | A | có |
+| `hist_critical` | V2, `omp critical` | A | có |
 | `hist_local_serial` | V3a, histogram cục bộ mỗi thread, gộp tuần tự | B | có |
-| `hist_local_parmerge` | V3b, histogram cục bộ, gộp song song theo bin | B | |
-| `hist_omp_reduce` | V4, `reduction(+:out[:bins])` | B | |
+| `hist_local_parmerge` | V3b, histogram cục bộ, gộp song song theo bin | B | có |
+| `hist_omp_reduce` | V4, V0 + `reduction(+:out[:bins])`, bản sao trên heap nhờ `allocate(omp_large_cap_mem_alloc: out)` | B | có |
 
 ### Quy tắc chia bin
 
@@ -113,7 +113,7 @@ Mọi phương án **phải** dùng `bin_of()` trong `hist.h`, không tự tính
 | `t_io` | đọc file (0 nếu dữ liệu đã có trong bộ nhớ) |
 | `t_init` | cấp phát và xóa histogram (cả các histogram cục bộ) |
 | `t_compute` | vòng lặp đếm |
-| `t_merge` | gộp các histogram cục bộ vào `out` (0 với V0) |
+| `t_merge` | gộp các histogram cục bộ vào `out` (0 với V0, V1, V2; 0 với V4 vì runtime tự gộp, nằm trong `t_compute`) |
 | `t_total` | từ đầu đến hết gộp, không tính `free` |
 
 ### Đối chiếu kết quả

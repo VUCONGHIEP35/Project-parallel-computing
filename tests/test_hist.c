@@ -1,6 +1,6 @@
 /* Test histogram (B). Chay: make test
  * Kiem bin_of, V0 (hist_seq) va moi ban trong bang VARIANTS (doi chieu tung bin voi V0).
- * Khi co V1, V2, V3b, V4: them mot dong vao VARIANTS. */
+ * Khi co ban moi (V4...): them mot dong vao VARIANTS. */
 #include "dataset.h"
 #include "hist.h"
 
@@ -99,11 +99,13 @@ static void test_uniform(void) {
     dataset_free(&ds);
 }
 
-/* ---- Doi chieu cac ban song song voi V0. Them V3b, V4... vao bang nay khi viet xong. ---- */
+/* ---- Doi chieu cac ban song song voi V0. Them V4... vao bang nay khi viet xong. ---- */
 static const struct { const char *name; hist_fn fn; } VARIANTS[] = {
     { "hist_atomic (V1)",        hist_atomic },
     { "hist_critical (V2)",      hist_critical },
     { "hist_local_serial (V3a)", hist_local_serial },
+    { "hist_local_parmerge (V3b)", hist_local_parmerge },
+    { "hist_omp_reduce (V4)",      hist_omp_reduce },
 };
 #define NVAR (sizeof VARIANTS / sizeof VARIANTS[0])
 
@@ -203,7 +205,7 @@ static void test_bin_of(void) {
 }
 
 int main(void) {
-    printf("test_hist: V0 hist_seq\n");
+    printf("test_hist: bin_of, V0 hist_seq va %zu ban trong VARIANTS\n", NVAR);
     test_bin_of();
     test_known();
     test_edges();
