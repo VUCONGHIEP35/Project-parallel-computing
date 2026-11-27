@@ -58,10 +58,13 @@ debug:
 
 # TSan khong hieu cac diem dong bo ben trong runtime OpenMP (barrier, reduction) -> bao race gia.
 # Archer (libarcher.so, di kem libomp cua LLVM) bao cho TSan cac diem do; tim thay thi nap qua OMPT.
+# ignore_noninstrumented_modules=1: bo qua truy cap ben trong libomp.so (khong build voi TSan),
+# Archer yeu cau tuy chon nay; thieu no TSan bao race gia trong pthread_mutex_lock cua runtime.
 TSAN_CC ?= clang
 ARCHER  ?= $(firstword $(wildcard /usr/lib/llvm-*/lib/libarcher.so))
 tsan:
-	OMP_TOOL_LIBRARIES="$(ARCHER)" TSAN_OPTIONS="halt_on_error=1 second_deadlock_stack=1" \
+	OMP_TOOL_LIBRARIES="$(ARCHER)" \
+	TSAN_OPTIONS="ignore_noninstrumented_modules=1 halt_on_error=1 second_deadlock_stack=1" \
 	    $(MAKE) MODE=tsan CC=$(TSAN_CC) test
 
 flags:
