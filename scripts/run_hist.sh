@@ -81,7 +81,7 @@ case "$EXP" in
     ARGS=(--dist uniform --n "$(csv ${N_LIST:-$BIG_N})" --bins "$(csv ${BINS_LIST:-$ALL_BINS})"
           --threads "$(csv ${T_LIST:-$P})"
           --variants hist_local_serial,hist_local_parmerge,hist_omp_reduce) ;;
-  E5)  # anh: doc PGM (t_io), doi x = p/256 (vao t_init)
+  E5)  # anh: doc PGM (t_io), doi x = p/256 (t_conv); phan tich bang --metric kernel
     DATA_DIR=${DATA_DIR:-$HOME/data}
     mkdir -p "$DATA_DIR"
     imgs=""
