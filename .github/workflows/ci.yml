@@ -1,0 +1,57 @@
+# CI: kiem tra dung/sai o moi PR va moi lan push len main (KE_HOACH muc 6.2).
+# Khong dung de do hieu nang (runner dung chung, 4 vCPU, dao dong manh).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gcc:
+    name: GCC - make test, make debug
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Phien ban
+        run: |
+          gcc --version | head -1
+          echo | gcc -fopenmp -dM -E - | grep _OPENMP
+          nproc
+          make flags
+
+      - name: make test (release)
+        run: make -j"$(nproc)" && make test
+
+      - name: hist_bench chay thu (cot ok phai = 1)
+        run: |
+          build/release/bin/hist_bench --dist uniform,zipf1.5,onebin --n 1e5 \
+            --bins 1,16,4096,1048576 --threads 1,4 --runs 1 > /dev/null
+
+      - name: make debug (ASan + UBSan)
+        env:
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: make debug
+
+  tsan:
+    name: Clang 18 - make tsan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cai clang-18, libomp-18
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q clang-18 libomp-18-dev
+          ls /usr/lib/llvm-18/lib | grep -E 'archer|libomp' || true
+
+      - name: make tsan
+        run: make tsan TSAN_CC=clang-18
