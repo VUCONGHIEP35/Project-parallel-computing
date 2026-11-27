@@ -1,4 +1,4 @@
-/* D0 - tich vo huong tuan tu. Moc de tinh speedup va dap an de doi chieu D1-D5. */
+/* D0 - tich vo huong tuan tu (C). Moc de tinh speedup va dap an de doi chieu D1-D5. */
 #include "dot.h"
 
 #include <omp.h>

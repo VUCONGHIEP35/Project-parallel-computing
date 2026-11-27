@@ -1,4 +1,4 @@
-/* Cac phuong an tich vo huong song song (OpenMP).
+/* Cac phuong an tich vo huong song song (OpenMP) (C).
  * D1 - dot_reduce: parallel for + reduction(+:s), schedule(static).
  * D2 - dot_partial: tu chia khoi, tong rieng trong thanh ghi, 1 thread gop.
  * D3 - dot_partial_fs: nhu D2 nhung cong thang vao mang tong rieng SAT NHAU (false sharing). */

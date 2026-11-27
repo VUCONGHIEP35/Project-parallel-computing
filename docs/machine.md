@@ -1,4 +1,4 @@
-# Cấu hình máy đo (A)
+# Cấu hình máy đo (C)
 
 ## Phần cứng
 

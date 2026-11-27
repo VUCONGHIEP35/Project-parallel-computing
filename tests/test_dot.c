@@ -1,5 +1,6 @@
-/* Test tich vo huong. Chay: make test
- * Hien chi kiem D0 (dot_seq). Khi co D1-D5, them vao bang VARIANTS de doi chieu voi D0. */
+/* Test tich vo huong (C). Chay: make test
+ * D0 (dot_seq) va cac phuong an song song trong bang VARIANTS (D1-D3), doi chieu voi tong Kahan:
+ * sai so tuong doi < 1e-9. Them phuong an moi vao VARIANTS de duoc doi chieu. */
 #include "dataset.h"
 #include "dot.h"
 
@@ -92,7 +93,7 @@ static void test_uniform(void) {
     dataset_free(&ONE);
 }
 
-/* Cac phuong an song song can doi chieu voi D0. Them D2.. vao day. */
+/* Cac phuong an song song can doi chieu voi D0. Them phuong an moi vao day. */
 static const struct { const char *name; dot_fn f; } VARIANTS[] = {
     { "dot_reduce", dot_reduce },
     { "dot_partial", dot_partial },

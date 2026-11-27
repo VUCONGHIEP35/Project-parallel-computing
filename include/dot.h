@@ -13,10 +13,10 @@
 typedef double (*dot_fn)(const float *a, const float *b, size_t n, timing_t *tm);
 
 /* Cac phuong an (cai dat trong src/dot/). Ten ham = ten trong CSV. */
-double dot_seq(const float *a, const float *b, size_t n, timing_t *tm); /* D0 - tuan tu */
-double dot_reduce(const float *a, const float *b, size_t n, timing_t *tm); /* D1 - reduction(+:s) */
-double dot_partial(const float *a, const float *b, size_t n, timing_t *tm); /* D2 - tong rieng, chia va gop thu cong */
-double dot_partial_fs(const float *a, const float *b, size_t n, timing_t *tm); /* D3 - tong rieng sat nhau: false sharing */
+double dot_seq(const float *a, const float *b, size_t n, timing_t *tm); /* D0 - C: tuan tu */
+double dot_reduce(const float *a, const float *b, size_t n, timing_t *tm); /* D1 - C: reduction(+:s) */
+double dot_partial(const float *a, const float *b, size_t n, timing_t *tm); /* D2 - C: tong rieng, chia va gop thu cong */
+double dot_partial_fs(const float *a, const float *b, size_t n, timing_t *tm); /* D3 - C: tong rieng sat nhau: false sharing */
 /* D4.. (atomic, simd) se khai bao them o day */
 
 #endif
