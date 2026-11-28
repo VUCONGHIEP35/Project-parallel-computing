@@ -46,6 +46,7 @@ static const struct { const char *name; dot_fn fn; } VARIANTS[] = {
     { "dot_reduce",     dot_reduce },
     { "dot_partial",    dot_partial },
     { "dot_partial_fs", dot_partial_fs },
+    { "dot_partial_pad", dot_partial_pad },
     /* them phuong an moi o day (cung ten ham) */
 };
 #define NVAR (sizeof VARIANTS / sizeof VARIANTS[0])

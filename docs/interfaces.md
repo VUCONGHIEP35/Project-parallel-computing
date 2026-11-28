@@ -182,6 +182,7 @@ double dot_xxx(const float *a, const float *b, size_t n, timing_t *tm);
 | `dot_reduce` | D1, `parallel for reduction(+:s)`: OpenMP tự chia, giữ tổng riêng và gộp | có |
 | `dot_partial` | D2, tự chia khối `[lo, hi)` cho từng thread, tổng riêng trong biến cục bộ, ghi 1 lần vào mảng đệm 64 byte, 1 thread gộp. Tách được `t_init` / `t_compute` / `t_merge` | có |
 | `dot_partial_fs` | D3, phản ví dụ: như D2 nhưng cộng thẳng vào `part[id]` (`volatile`) mỗi vòng lặp và các ô `part[]` sát nhau (8 byte), nên nhiều thread chung một cache line: false sharing. Kết quả đúng, chỉ chậm | có |
+| `dot_partial_pad` | D3b, đối chứng của D3: giống hệt D3 (cùng `volatile`, cộng thẳng vào `part[id]` mỗi vòng lặp) nhưng mỗi ô đệm 64 byte, nên mỗi thread một cache line riêng. `T(D3) − T(D3b)` là tác hại riêng của false sharing, `T(D3b) − T(D2)` là cái giá của `volatile` | có |
 
 ### Đối chiếu kết quả
 
@@ -231,7 +232,7 @@ timestamp,host,kernel,variant,n,bins,dist,threads,schedule,run,t_io,t_init,t_com
 | Cột | Ý nghĩa với tích vô hướng |
 |---|---|
 | `timestamp`, `host`, `kernel` | như `hist_bench` |
-| `variant` | tên hàm (`dot_seq`, `dot_reduce`, `dot_partial`, `dot_partial_fs`) |
+| `variant` | tên hàm (`dot_seq`, `dot_reduce`, `dot_partial`, `dot_partial_fs`, `dot_partial_pad`) |
 | `n` | số phần tử mỗi vector |
 | `bins` | luôn `0` (không áp dụng) |
 | `dist` | luôn `uniform` (`a` seed `S`, `b` seed `S+1`) |

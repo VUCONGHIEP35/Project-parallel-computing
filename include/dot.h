@@ -17,6 +17,7 @@ double dot_seq(const float *a, const float *b, size_t n, timing_t *tm); /* D0 - 
 double dot_reduce(const float *a, const float *b, size_t n, timing_t *tm); /* D1 - C: reduction(+:s) */
 double dot_partial(const float *a, const float *b, size_t n, timing_t *tm); /* D2 - C: tong rieng, chia va gop thu cong */
 double dot_partial_fs(const float *a, const float *b, size_t n, timing_t *tm); /* D3 - C: tong rieng sat nhau: false sharing */
+double dot_partial_pad(const float *a, const float *b, size_t n, timing_t *tm); /* D3b - C: nhu D3 nhung dem 64 byte/o: doi chung */
 /* D4.. (atomic, simd) se khai bao them o day */
 
 #endif
