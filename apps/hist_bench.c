@@ -10,7 +10,7 @@
  *   --n N,..         so phan tu, nhan ca dang 1e8                         mac dinh 1e6
  *   --seed S                                                              mac dinh 1
  *   --file F,..      doc file .bin (t_io = thoi gian doc), thay cho --dist/--n
- *   --image F,..     doc anh PGM, doi x = p/256 (t_io = doc, t_init cong them thoi gian doi)
+ *   --image F,..     doc anh PGM (t_io), doi x = p/256 (t_conv)
  *   --bins B,..                                                           mac dinh 256
  *   --threads T,..                                                        mac dinh omp_get_max_threads()
  *   --variants V,..  ten ham, xem --list                                  mac dinh tat ca
@@ -19,6 +19,10 @@
  *   --no-header      khong in dong tieu de (de noi vao file co san)
  *   --list           in ten cac phuong an roi thoat
  *
+ * Doc file (--file, --image): doc mot lan bo di de lam nong page cache, roi moi doc lai va do t_io.
+ * So do doc lanh khong on dinh tren WSL2 (Windows con cache VHDX) va drop cache can sudo.
+ * t_io, t_conv do mot lan cho moi bo du lieu, ghi lai o moi dong; t_total = t_total cua ham
+ * + t_io + t_conv. t_init, t_compute, t_merge giu nguyen cua phuong an.
  * hist_seq chay tuan tu nen chi do mot lan cho moi (du lieu, bins), ghi threads = 1.
  * Moi lan do deu doi chieu tung bin voi hist_seq (cot ok). Co dong ok = 0 -> ma thoat 1.
  * Cot CSV: docs/interfaces.md, muc "CSV cua hist_bench". */
@@ -190,9 +194,9 @@ static void bench_dataset(const config_t *c, const dataset_t *ds, const char *dn
                     }
                     char ts[32];
                     now_iso(ts, sizeof ts);
-                    printf("%s,%s,%s,%s,%zu,%d,%s,%d,%s,%d,%.9f,%.9f,%.9f,%.9f,%.9f,%llu,%d\n",
+                    printf("%s,%s,%s,%s,%zu,%d,%s,%d,%s,%d,%.9f,%.9f,%.9f,%.9f,%.9f,%.9f,%llu,%d\n",
                            ts, c->host, c->kernel, VARIANTS[v].name, ds->n, bins, dname, tlabel,
-                           "static", r, t_io, tm.t_init + t_conv, tm.t_compute, tm.t_merge,
+                           "static", r, t_io, t_conv, tm.t_init, tm.t_compute, tm.t_merge,
                            tm.t_total + t_io + t_conv, checksum(out, bins), ok);
                     fflush(stdout);
                 }
@@ -275,12 +279,14 @@ int main(int argc, char **argv) {
 
     if (header)
         printf("timestamp,host,kernel,variant,n,bins,dist,threads,schedule,run,"
-               "t_io,t_init,t_compute,t_merge,t_total,checksum,ok\n");
+               "t_io,t_conv,t_init,t_compute,t_merge,t_total,checksum,ok\n");
 
     if (nf || ni) {
-        /* du lieu tu file: t_io = thoi gian doc */
+        /* du lieu tu file: doc lam nong 1 lan (bo), roi do t_io o lan doc thu hai */
         for (int j = 0; j < nf; j++) {
             dataset_t ds;
+            if (dataset_load(files[j], &ds) != 0) { fprintf(stderr, "khong doc duoc %s\n", files[j]); return 1; }
+            dataset_free(&ds);
             double t0 = omp_get_wtime();
             if (dataset_load(files[j], &ds) != 0) { fprintf(stderr, "khong doc duoc %s\n", files[j]); return 1; }
             double t_io = omp_get_wtime() - t0;
@@ -289,6 +295,8 @@ int main(int argc, char **argv) {
         }
         for (int j = 0; j < ni; j++) {
             dataset_t ds;
+            if (pgm_load(images[j], &ds) != 0) { fprintf(stderr, "khong doc duoc %s\n", images[j]); return 1; }
+            dataset_free(&ds);
             double t0 = omp_get_wtime();
             if (pgm_load(images[j], &ds) != 0) { fprintf(stderr, "khong doc duoc %s\n", images[j]); return 1; }
             double t1 = omp_get_wtime();
