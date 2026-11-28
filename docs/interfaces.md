@@ -230,7 +230,7 @@ Số lần lặp trong mỗi lần đo tính theo **thời gian**, không theo `
 **Cùng các cột với `hist_bench`** để dùng chung công cụ phân tích; mỗi lần đo một dòng, lần khởi động không ghi:
 
 ```
-timestamp,host,kernel,variant,n,bins,dist,threads,schedule,run,t_io,t_init,t_compute,t_merge,t_total,checksum,ok
+timestamp,host,kernel,variant,n,bins,dist,threads,schedule,run,t_io,t_conv,t_init,t_compute,t_merge,t_total,checksum,ok
 ```
 
 | Cột | Ý nghĩa với tích vô hướng |
@@ -244,6 +244,7 @@ timestamp,host,kernel,variant,n,bins,dist,threads,schedule,run,t_io,t_init,t_com
 | `schedule` | `static` |
 | `run` | 1..R |
 | `t_io` | luôn 0 (dữ liệu sinh trong bộ nhớ, thời gian sinh không tính) |
+| `t_conv` | luôn 0 (không có bước đổi ảnh); có cột để CSV cùng 18 cột với `hist_bench` |
 | `t_init`, `t_compute`, `t_merge`, `t_total` | trung bình **một lần gọi** trong lần đo, lấy từ `timing_t` của phương án. `t_merge = 0` với `dot_seq` và `dot_reduce` (runtime tự gộp, nằm trong `t_compute`) |
 | `checksum` | kết quả tích vô hướng (`%.17g`) |
 | `ok` | 1 nếu `\|r − r_D0\| / \|r_D0\| < 1e-6` so với `dot_seq` trên cùng dữ liệu. Có dòng 0 thì `dot_bench` thoát mã 1 |

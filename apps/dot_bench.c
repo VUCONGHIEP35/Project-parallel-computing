@@ -16,7 +16,7 @@
  *   --list           in ten cac phuong an roi thoat
  *
  * Cot CSV giong het hist_bench (docs/interfaces.md) de dung chung cong cu phan tich:
- *   bins = 0 (khong ap dung), dist = uniform, schedule = static,
+ *   bins = 0 (khong ap dung), dist = uniform, schedule = static, t_io = t_conv = 0,
  *   t_* = trung binh mot lan goi trong lan do (lay tu timing_t cua phuong an),
  *   checksum = ket qua tich vo huong, ok = 1 neu sai so tuong doi so voi dot_seq < 1e-6.
  * So lan lap trong moi lan do tinh theo THOI GIAN (--min-time), khong theo n: n nho thi lap nhieu
@@ -196,9 +196,10 @@ static void bench_n(const config_t *c, const float *a, const float *b, size_t n)
                 }
                 char ts[32];
                 now_iso(ts, sizeof ts);
-                printf("%s,%s,%s,%s,%zu,%d,%s,%d,%s,%d,%.9f,%.9f,%.9f,%.9f,%.9f,%.17g,%d\n",
+                printf("%s,%s,%s,%s,%zu,%d,%s,%d,%s,%d,%.9f,%.9f,%.9f,%.9f,%.9f,%.9f,%.17g,%d\n",
                        ts, c->host, c->kernel, VARIANTS[v].name, n, 0, "uniform", tlabel,
-                       "static", r, tm.t_io, tm.t_init, tm.t_compute, tm.t_merge, tm.t_total,
+                       "static", r, tm.t_io, 0.0 /* t_conv: khong co doi anh */, tm.t_init,
+                       tm.t_compute, tm.t_merge, tm.t_total,
                        res, ok);
                 fflush(stdout);
             }
@@ -263,7 +264,7 @@ int main(int argc, char **argv) {
 
     if (header)
         printf("timestamp,host,kernel,variant,n,bins,dist,threads,schedule,run,"
-               "t_io,t_init,t_compute,t_merge,t_total,checksum,ok\n");
+               "t_io,t_conv,t_init,t_compute,t_merge,t_total,checksum,ok\n");
 
     /* du lieu sinh trong bo nho: t_io = 0, thoi gian sinh khong tinh */
     for (int k = 0; k < nn; k++) {
