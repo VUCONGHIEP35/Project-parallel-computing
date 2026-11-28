@@ -1,7 +1,8 @@
-/* Cac phuong an tich vo huong song song (OpenMP).
+/* Cac phuong an tich vo huong song song (OpenMP) (C).
  * D1 - dot_reduce: parallel for + reduction(+:s), schedule(static).
  * D2 - dot_partial: tu chia khoi, tong rieng trong thanh ghi, 1 thread gop.
- * D3 - dot_partial_fs: nhu D2 nhung cong thang vao mang tong rieng SAT NHAU (false sharing). */
+ * D3 - dot_partial_fs: nhu D2 nhung cong thang vao mang tong rieng SAT NHAU (false sharing).
+ * D3b - dot_partial_pad: doi chung cua D3, giong het D3 nhung moi o dem 64 byte (khong false sharing). */
 #include "compat.h"
 #include "dot.h"
 
@@ -114,6 +115,50 @@ double dot_partial_fs(const float *a, const float *b, size_t n, timing_t *tm) {
     double s = 0.0;
     for (int id = 0; id < used; id++)
         s += part[id];
+    double t3 = omp_get_wtime();
+
+    xaligned_free(part);
+    if (tm) {
+        tm->t_io      = 0.0;
+        tm->t_init    = t1 - t0;
+        tm->t_compute = t2 - t1;
+        tm->t_merge   = t3 - t2;
+        tm->t_total   = t3 - t0;
+    }
+    return s;
+}
+
+/* D3b - doi chung cua D3: GIONG HET D3 tung dong (cung volatile, cung cong thang vao o part[id]
+ * moi vong lap), chi khac moi o la padded_double 64 byte -> moi thread 1 cache line rieng.
+ * So sanh: T(D3) - T(D3b) = tac hai rieng cua false sharing; T(D3b) - T(D2) = gia cua volatile. */
+double dot_partial_pad(const float *a, const float *b, size_t n, timing_t *tm) {
+    double t0 = omp_get_wtime();
+
+    /* t_init: mang tong rieng CO DEM, moi o 1 cache line */
+    int maxT = omp_get_max_threads();
+    padded_double *part = xaligned_alloc(64, (size_t)maxT * sizeof *part);
+    if (!part) return dot_seq(a, b, n, tm); /* het bo nho: lui ve D0 */
+    int used = 1;
+    double t1 = omp_get_wtime();
+
+    /* t_compute: giong D3, chi khac o nam tren cache line rieng */
+    #pragma omp parallel
+    {
+        int id = omp_get_thread_num(), nt = omp_get_num_threads();
+        size_t lo = n * (size_t)id / (size_t)nt;
+        size_t hi = n * (size_t)(id + 1) / (size_t)nt;
+        volatile double *p = &part[id].v;              /* o cua rieng thread nay, cache line rieng */
+        *p = 0.0;                                      /* xaligned_alloc khong xoa san bo nho */
+        for (size_t i = lo; i < hi; i++)
+            *p += (double)a[i] * (double)b[i];         /* doc + ghi bo nho moi vong, nhu D3 */
+        if (id == 0) used = nt;
+    } /* barrier ngam: cho moi thread xong */
+    double t2 = omp_get_wtime();
+
+    /* t_merge: 1 thread cong cac tong rieng */
+    double s = 0.0;
+    for (int id = 0; id < used; id++)
+        s += part[id].v;
     double t3 = omp_get_wtime();
 
     xaligned_free(part);

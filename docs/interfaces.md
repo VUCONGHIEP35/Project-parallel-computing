@@ -167,7 +167,7 @@ timestamp,host,kernel,variant,n,bins,dist,threads,schedule,run,t_io,t_conv,t_ini
 | `checksum` | `Σ (b + 1) · h[b]` (mod 2^64), chống compiler bỏ vòng lặp |
 | `ok` | 1 nếu khớp từng bin với `hist_seq` trên cùng dữ liệu. Có dòng 0 thì `hist_bench` thoát mã 1 |
 
-## Tích vô hướng
+## Tích vô hướng (Thành viên C)
 
 ### Hàm
 
@@ -186,15 +186,77 @@ double dot_xxx(const float *a, const float *b, size_t n, timing_t *tm);
 | `dot_reduce` | D1, `parallel for reduction(+:s)`: OpenMP tự chia, giữ tổng riêng và gộp | có |
 | `dot_partial` | D2, tự chia khối `[lo, hi)` cho từng thread, tổng riêng trong biến cục bộ, ghi 1 lần vào mảng đệm 64 byte, 1 thread gộp. Tách được `t_init` / `t_compute` / `t_merge` | có |
 | `dot_partial_fs` | D3, phản ví dụ: như D2 nhưng cộng thẳng vào `part[id]` (`volatile`) mỗi vòng lặp và các ô `part[]` sát nhau (8 byte), nên nhiều thread chung một cache line: false sharing. Kết quả đúng, chỉ chậm | có |
+| `dot_partial_pad` | D3b, đối chứng của D3: giống hệt D3 (cùng `volatile`, cộng thẳng vào `part[id]` mỗi vòng lặp) nhưng mỗi ô đệm 64 byte, nên mỗi thread một cache line riêng. `T(D3) − T(D3b)` là tác hại riêng của false sharing, `T(D3b) − T(D2)` là cái giá của `volatile` | có |
 
 ### Đối chiếu kết quả
 
-Thứ tự cộng thay đổi theo số thread nên bản song song có thể lệch vài chữ số cuối so với D0. Bản song song đạt nếu `|r - r_D0| / |r_D0| < 1e-6`.
+Thứ tự cộng thay đổi theo số thread nên bản song song có thể lệch vài chữ số cuối so với D0. Có hai mức kiểm tra:
+
+- `dot_bench` (cột `ok`): bản song song đạt nếu `|r - r_D0| / |r_D0| < 1e-6`.
+- `tests/test_dot.c`: chặt hơn, mọi phương án (cả D0) so với tổng Kahan phải có sai số tương đối `< 1e-9`.
+
+Thêm phương án mới vào bảng `VARIANTS` trong `tests/test_dot.c` để được đối chiếu (1, 2, 4, 8 thread, `n < T`, `n = 0`, `n` không chia hết cho `T`, lặp 20 lần để bắt race), và vào bảng `VARIANTS` trong `apps/dot_bench.c` để đo được.
+
+### Đo tích vô hướng (E6)
+
+```bash
+make
+PILOT=b scripts/run_dot.sh            # pilot nhỏ trên máy mình -> results/pilot/b/E6_<giờ>.csv
+scripts/run_dot.sh                    # lô chính trên máy đo -> results/raw/E6_<giờ>.csv + .env.json
+build/release/bin/dot_bench --n 1e4,1e6 --threads 1,4 --runs 3 > a.csv   # gọi tay để thử nhanh
+```
+
+| Script | Việc |
+|---|---|
+| `scripts/run_dot.sh` | Chạy E6 theo khuôn `run_hist.sh`: đặt sẵn `OMP_PROC_BIND=close`, `OMP_PLACES=cores`, `OMP_DYNAMIC=false`; dãy thread giống `run_hist.sh` (1, 2, 4, 6, 8, 12, ... đến `nproc`, thêm `P`); lô chính 7 lần đo, n = 10^4, 10^6, 10^8, ghi môi trường bằng `collect_env.sh`; `PILOT=<a\|b\|c>` thu nhỏ: 3 lần đo, n tối đa 10^7. Ghi đè bằng `N_LIST`, `T_LIST`, `VARIANTS`, `RUNS`, `P`, `MIN_TIME`, `MAX_MB`. `scripts/run_all.sh` tự gọi file này. Tham số E6 hiện là đề xuất tạm, chưa đối chiếu KE_HOACH |
+
+Tùy chọn của `dot_bench` (danh sách cách nhau bằng dấu phẩy):
+
+| Tùy chọn | Ý nghĩa | Mặc định |
+|---|---|---|
+| `--n N,..` | số phần tử, nhận cả dạng `1e8` | `1e6` |
+| `--seed S` | `a` = uniform seed `S`, `b` = uniform seed `S+1` | `1` |
+| `--threads T,..` | số thread, đặt bằng `omp_set_num_threads` | `omp_get_max_threads()` |
+| `--variants V,..` | tên hàm, xem `--list` | tất cả |
+| `--runs R` | số lần đo ghi lại; thêm 1 lần khởi động không ghi | `7` |
+| `--min-time S` | mỗi lần đo gọi hàm lặp lại đến khi đủ `S` giây rồi chia trung bình | `0.05` |
+| `--max-mb M` | bỏ qua `n` cần hơn `M` MiB cho 2 vector | `2500` |
+| `--no-header`, `--list` | như `hist_bench` | |
+
+Số lần lặp trong mỗi lần đo tính theo **thời gian**, không theo `n`: nhân đôi số lần gọi cho đến khi cả loạt đủ `--min-time`. Nhờ vậy `n` nhỏ vẫn đo đủ chính xác, còn khi một lần gọi đã chậm (máy C từ khoảng 18 thread trở lên, mỗi vùng song song mất khoảng 10 ms) thì chỉ lặp vài lần, không bị treo. Số lần lặp in ra stderr (`# n=... T=... <variant> reps=...`).
 
 ### CSV của `dot_bench`
 
-Cột: `version,n,threads,time_s,gbps,result`.
+**Cùng các cột với `hist_bench`** để dùng chung công cụ phân tích; mỗi lần đo một dòng, lần khởi động không ghi:
 
-- `time_s`: thời gian một lần gọi (trung vị 5 lần đo; `n` nhỏ thì lặp nhiều lần rồi chia).
-- `gbps`: băng thông bộ nhớ đạt được = `8 · n / time_s / 10^9` (đọc 2 `float` mỗi phần tử).
-- Dữ liệu: `a` = uniform seed 1, `b` = uniform seed 2.
+```
+timestamp,host,kernel,variant,n,bins,dist,threads,schedule,run,t_io,t_init,t_compute,t_merge,t_total,checksum,ok
+```
+
+| Cột | Ý nghĩa với tích vô hướng |
+|---|---|
+| `timestamp`, `host`, `kernel` | như `hist_bench` |
+| `variant` | tên hàm (`dot_seq`, `dot_reduce`, `dot_partial`, `dot_partial_fs`, `dot_partial_pad`) |
+| `n` | số phần tử mỗi vector |
+| `bins` | luôn `0` (không áp dụng) |
+| `dist` | luôn `uniform` (`a` seed `S`, `b` seed `S+1`) |
+| `threads` | số thread đặt bằng `omp_set_num_threads`; `dot_seq` luôn ghi 1 và chỉ đo một lần cho mỗi `n` |
+| `schedule` | `static` |
+| `run` | 1..R |
+| `t_io` | luôn 0 (dữ liệu sinh trong bộ nhớ, thời gian sinh không tính) |
+| `t_init`, `t_compute`, `t_merge`, `t_total` | trung bình **một lần gọi** trong lần đo, lấy từ `timing_t` của phương án. `t_merge = 0` với `dot_seq` và `dot_reduce` (runtime tự gộp, nằm trong `t_compute`) |
+| `checksum` | kết quả tích vô hướng (`%.17g`) |
+| `ok` | 1 nếu `\|r − r_D0\| / \|r_D0\| < 1e-6` so với `dot_seq` trên cùng dữ liệu. Có dòng 0 thì `dot_bench` thoát mã 1 |
+
+### Phân tích
+
+```bash
+python3 analysis/summarize.py results/raw/E6_*.csv > results/summary/E6.csv
+```
+
+`analysis/summarize.py` nhận họ phương án từ tiền tố tên (`hist_*`, `dot_*`), nên với tích vô hướng:
+
+- `speedup = median(dot_seq) / median(phương án)` cùng `n`; `efficiency = speedup / threads`.
+- `gbps = 8 · n / median / 10^9` (đọc 2 `float` mỗi phần tử; histogram vẫn tính 4 byte).
+
+Một file CSV có thể trộn cả hai họ: mỗi họ so với bản tuần tự của chính nó.
