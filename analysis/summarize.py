@@ -3,6 +3,7 @@
 
     python3 analysis/summarize.py results/raw/E2_*.csv > results/summary/E2.csv
     python3 analysis/summarize.py --metric t_compute results/raw/E4_*.csv
+    python3 analysis/summarize.py --metric kernel results/raw/E5_*.csv     # anh: bo t_io, t_conv
     python3 analysis/summarize.py results/raw/E6_*.csv > results/summary/E6.csv
 
 Moi nhom (variant, n, bins, dist, threads) cho: so lan do, median/min/max/Q1/Q3/IQR/std cua
@@ -20,7 +21,8 @@ import statistics
 import sys
 from collections import defaultdict
 
-PHASES = ("t_io", "t_init", "t_compute", "t_merge", "t_total")
+PHASES = ("t_io", "t_conv", "t_init", "t_compute", "t_merge", "t_total")
+OPTIONAL = {"t_conv": "0"}  # CSV cu (truoc khi tach t_conv) khong co cot nay: coi la 0
 KEY = ("variant", "n", "bins", "dist", "threads")
 # So byte du lieu doc moi phan tu, theo ho phuong an. Ho khac: 4 (nhu truoc).
 BYTES_PER_ELEM = {"hist": 4, "dot": 8}
@@ -37,7 +39,7 @@ def baseline(variant):
 
 
 def metric_value(row, metric):
-    if metric == "kernel":  # chi phan cua phuong an, khong tinh doc file
+    if metric == "kernel":  # chi phan cua phuong an, khong tinh doc file (t_io) va doi anh (t_conv)
         return float(row["t_init"]) + float(row["t_compute"]) + float(row["t_merge"])
     return float(row[metric])
 
@@ -53,8 +55,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("csv", nargs="+", help="file CSV tho cua hist_bench hoac dot_bench")
     ap.add_argument("--metric", default="t_total", choices=PHASES + ("kernel",),
-                    help="cot dung de tinh thong ke va speedup (mac dinh t_total; "
-                         "kernel = t_init + t_compute + t_merge)")
+                    help="cot dung de tinh thong ke va speedup (mac dinh t_total = t_io + t_conv + "
+                         "t_total cua ham; kernel = t_init + t_compute + t_merge)")
     ap.add_argument("--allow-mixed-hosts", action="store_true",
                     help="cho phep tron nhieu host (chi dung cho pilot)")
     args = ap.parse_args()
@@ -64,6 +66,9 @@ def main():
     for path in args.csv:
         with open(path, newline="") as f:
             for row in csv.DictReader(f):
+                for col, default in OPTIONAL.items():
+                    if row.get(col) in (None, ""):
+                        row[col] = default
                 hosts.add(row["host"])
                 if row["ok"] != "1":
                     bad += 1
