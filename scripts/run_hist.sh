@@ -93,12 +93,13 @@ case "$EXP" in
     ARGS=(--image "$(csv $imgs)" --bins "$(csv ${BINS_LIST:-256})"
           --threads "$(csv ${T_LIST:-$(t_sweep)})"
           --variants hist_seq,hist_atomic,hist_local_parmerge) ;;
-  E7)  # padding histogram cuc bo: can phuong an hist_local_nopad
+  E7)  # padding histogram cuc bo: V3b (co padding) so voi hist_local_nopad.
+       # bins nho -> nhieu thread chung mot cache line (bins = 1: 8 thread/line); 256 de doi chung.
     if ! "$BENCH" --list | grep -qx hist_local_nopad; then
       echo "E7: chua co hist_local_nopad trong hist_bench" >&2; exit 1
     fi
-    ARGS=(--dist uniform --n "$(csv ${N_LIST:-$BIG_N})" --bins "$(csv ${BINS_LIST:-256})"
-          --threads "$(csv ${T_LIST:-$P})" --variants hist_local_parmerge,hist_local_nopad) ;;
+    ARGS=(--dist uniform --n "$(csv ${N_LIST:-$BIG_N})" --bins "$(csv ${BINS_LIST:-1 4 16 256})"
+          --threads "$(csv ${T_LIST:-$(t_sweep)})" --variants hist_local_parmerge,hist_local_nopad) ;;
 esac
 
 mkdir -p "$OUT_DIR"

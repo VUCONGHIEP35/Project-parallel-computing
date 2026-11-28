@@ -50,6 +50,7 @@ static const struct { const char *name; hist_fn fn; } VARIANTS[] = {
     { "hist_local_serial",   hist_local_serial },
     { "hist_local_parmerge", hist_local_parmerge },
     { "hist_omp_reduce",     hist_omp_reduce },
+    { "hist_local_nopad",    hist_local_nopad },   /* chi cho E7 */
     /* them phuong an moi o day (cung ten ham) */
 };
 #define NVAR (sizeof VARIANTS / sizeof VARIANTS[0])

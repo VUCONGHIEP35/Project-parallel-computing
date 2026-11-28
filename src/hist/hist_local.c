@@ -2,7 +2,9 @@
  * Moi thread dem vao mang rieng (khong atomic, khong khoa), sau do gop T mang vao out:
  *   V3a hist_local_serial   : 1 thread gop (tuan tu)
  *   V3b hist_local_parmerge : chia cac bin cho cac thread cung gop (song song)
- * Hai ban dung chung buoc cap phat + dem (local_count), chi khac buoc gop. */
+ *   E7  hist_local_nopad    : nhu V3b nhung KHONG padding (stride = bins), de do false sharing
+ * Ca ba dung chung buoc cap phat + dem (local_count). V3a/V3b chi khac buoc gop;
+ * V3b/nopad chi khac stride. */
 #include "hist.h"
 #include "compat.h"
 
@@ -14,12 +16,14 @@
 #define PER_LINE (CACHE_LINE / sizeof(uint64_t))   /* 8 bo dem / cache line */
 
 /* Cap phat + xoa T histogram cuc bo (t_init), roi moi thread dem vao mang cua minh (t_compute).
- * Tra ve mang local gom T mang, mang t bat dau tai local + t * stride. Nguoi goi giai phong. */
-static uint64_t *local_count(const float *x, size_t n, int bins,
+ * Tra ve mang local gom T mang, mang t bat dau tai local + t * stride. Nguoi goi giai phong.
+ * pad = 1: stride lam tron len boi so cua 8 -> moi mang bat dau o dau cache line, tranh false sharing.
+ * pad = 0: stride = bins, cac mang nam sat nhau -> bins nho thi nhieu thread ghi chung mot cache line
+ *          (bins = 4: 2 thread / line; bins = 1: 8 thread / line). Ket qua van dung, chi cham. */
+static uint64_t *local_count(const float *x, size_t n, int bins, int pad,
                              int *T_out, size_t *stride_out, double *t1, double *t2) {
-    /* stride lam tron len boi so cua 8 -> moi mang bat dau o dau cache line, tranh false sharing. */
     const int T = omp_get_max_threads();
-    const size_t stride = ((size_t)bins + PER_LINE - 1) / PER_LINE * PER_LINE;
+    const size_t stride = pad ? ((size_t)bins + PER_LINE - 1) / PER_LINE * PER_LINE : (size_t)bins;
     uint64_t *local = xaligned_alloc(CACHE_LINE, (size_t)T * stride * sizeof *local);
     if (!local) abort();
 
@@ -57,7 +61,7 @@ void hist_local_serial(const float *x, size_t n, int bins, uint64_t *out, timing
     double t0 = omp_get_wtime(), t1, t2;
     int T;
     size_t stride;
-    uint64_t *local = local_count(x, n, bins, &T, &stride, &t1, &t2);
+    uint64_t *local = local_count(x, n, bins, 1, &T, &stride, &t1, &t2);
 
     /* t_merge: 1 thread cong T mang. Duyet t ngoai, b trong -> doc lien tiep trong bo nho. */
     memcpy(out, local, (size_t)bins * sizeof *out);
@@ -72,11 +76,12 @@ void hist_local_serial(const float *x, size_t n, int bins, uint64_t *out, timing
     fill_timing(tm, t0, t1, t2, t3);
 }
 
-void hist_local_parmerge(const float *x, size_t n, int bins, uint64_t *out, timing_t *tm) {
+/* Dem cuc bo (co/khong padding) roi gop song song theo bin: than chung cua V3b va nopad. */
+static void local_parmerge(const float *x, size_t n, int bins, uint64_t *out, timing_t *tm, int pad) {
     double t0 = omp_get_wtime(), t1, t2;
     int T;
     size_t stride;
-    uint64_t *local = local_count(x, n, bins, &T, &stride, &t1, &t2);
+    uint64_t *local = local_count(x, n, bins, pad, &T, &stride, &t1, &t2);
 
     /* t_merge: chia cac bin cho cac thread. Thread giu bin b cong T mang tai bin b
      * -> moi out[b] chi do mot thread ghi, mot lan, khong can atomic hay memset truoc. */
@@ -91,4 +96,13 @@ void hist_local_parmerge(const float *x, size_t n, int bins, uint64_t *out, timi
 
     xaligned_free(local);
     fill_timing(tm, t0, t1, t2, t3);
+}
+
+void hist_local_parmerge(const float *x, size_t n, int bins, uint64_t *out, timing_t *tm) {
+    local_parmerge(x, n, bins, out, tm, 1);
+}
+
+/* Phan vi du cho E7: giong het V3b, chi bo padding. Khong dung trong thuc te. */
+void hist_local_nopad(const float *x, size_t n, int bins, uint64_t *out, timing_t *tm) {
+    local_parmerge(x, n, bins, out, tm, 0);
 }
