@@ -93,6 +93,7 @@ void hist_xxx(const float *x, size_t n, int bins, uint64_t *out, timing_t *tm);
 | `hist_local_serial` | V3a, histogram cục bộ mỗi thread, gộp tuần tự | B | có |
 | `hist_local_parmerge` | V3b, histogram cục bộ, gộp song song theo bin | B | có |
 | `hist_omp_reduce` | V4, V0 + `reduction(+:out[:bins])`, bản sao trên heap nhờ `allocate(omp_large_cap_mem_alloc: out)` | B | có |
+| `hist_local_nopad` | Chỉ dùng cho E7: như V3b nhưng không padding (`stride = bins`), các histogram cục bộ nằm sát nhau nên với B nhỏ nhiều thread ghi chung một cache line (false sharing). Kết quả vẫn đúng | B | có |
 
 ### Quy tắc chia bin
 
@@ -138,7 +139,7 @@ E5 so sánh phương án bằng `--metric kernel`, không dùng `t_compute`: V4 
 |---|---|
 | `scripts/run_hist.sh E1..E5` | Chạy một thí nghiệm theo tham số ở KE_HOACH mục 4. Ghi đè bằng biến môi trường `N_LIST`, `BINS_LIST`, `T_LIST`, `RUNS`, `P`, `IMG_LIST`, `DATA_DIR`. Đặt sẵn `OMP_PROC_BIND=close`, `OMP_PLACES=cores`, `OMP_DYNAMIC=false`. `PILOT=<a\|b\|c>` thu nhỏ: 3 lần đo, N tối đa 10^7, ảnh tối đa 2048². E7 chờ `hist_local_nopad` |
 | `scripts/collect_env.sh [file]` | Ghi môi trường (Windows qua `powershell.exe`, WSL, GCC, `_OPENMP`, cờ biên dịch, `OMP_*`, Python, commit) ra JSON. Lô chính của `run_hist.sh` tự gọi |
-| `scripts/run_all.sh` | `make`, rồi E1–E5 (và `run_dot.sh` nếu đã có). `PILOT=b scripts/run_all.sh` để kiểm tra M3 |
+| `scripts/run_all.sh` | `make`, rồi E1–E5, E7 và E6 (`run_dot.sh`). Một thí nghiệm lỗi thì vẫn chạy tiếp các thí nghiệm sau, cuối cùng in danh sách thí nghiệm lỗi và thoát mã 1. `EXPS="E2 E7"` để chỉ chạy vài thí nghiệm histogram (khi đó bỏ E6). `PILOT=b scripts/run_all.sh` để kiểm tra M3 |
 | `analysis/summarize.py` | Gom theo (variant, n, bins, dist, threads): median, min, max, Q1, Q3, IQR, std, median từng pha, speedup so với `hist_seq` cùng (n, bins, dist), efficiency, triệu phần tử/s, GB/s. `--metric t_compute` hoặc `kernel` (= `t_init + t_compute + t_merge`) để đổi cột tính. Dừng nếu CSV trộn nhiều host hoặc có dòng `ok = 0`. Đọc được cả CSV cũ chưa có cột `t_conv` (coi là 0). Chỉ cần Python chuẩn |
 
 `P` mặc định đọc từ `lscpu`. Trên WSL số này có thể sai (máy B: WSL báo 10 lõi, Windows báo 14), nên trên máy đo đặt `P` theo `docs/machine.md`, ví dụ `P=14 scripts/run_hist.sh E3`.

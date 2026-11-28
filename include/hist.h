@@ -34,5 +34,6 @@ void hist_critical(const float *x, size_t n, int bins, uint64_t *out, timing_t *
 void hist_local_serial(const float *x, size_t n, int bins, uint64_t *out, timing_t *tm);   /* V3a - B */
 void hist_local_parmerge(const float *x, size_t n, int bins, uint64_t *out, timing_t *tm); /* V3b - B */
 void hist_omp_reduce(const float *x, size_t n, int bins, uint64_t *out, timing_t *tm);     /* V4  - B */
+void hist_local_nopad(const float *x, size_t n, int bins, uint64_t *out, timing_t *tm);    /* E7: V3b khong padding - B */
 
 #endif
