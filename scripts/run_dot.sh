@@ -4,8 +4,11 @@
 #   scripts/run_dot.sh              # lo chinh tren may do cuoi -> results/raw/E6_<gio>.csv
 #   PILOT=b scripts/run_dot.sh      # pilot nho tren may minh   -> results/pilot/b/
 #
-# Tham so E6 hien la DE XUAT TAM (chua doi chieu KE_HOACH): moi phuong an cua dot_bench,
-# n = 1e4 (cache L1/L2), 1e6 (L3), 1e8 (RAM); day thread giong run_hist.sh.
+# Tham so E6 (chua doi chieu KE_HOACH): moi phuong an cua dot_bench, day thread giong run_hist.sh,
+# n chon theo tang bo nho (2 vector = 8n byte), da quet thu tren may C:
+#   1e4 (80 KB)  chi phi mo vung song song lan at      1e5 (800 KB) speedup dang tang
+#   3e5 (2,4 MB) dinh: chia vao L2 rieng moi core        1e6 (8 MB)   L3
+#   1e7 (80 MB), 1e8 (800 MB) RAM; 1e6, 1e7, 1e8 trung voi E1 de so sanh voi histogram.
 # Ghi de bang bien moi truong (danh sach cach nhau bang dau cach):
 #   N_LIST     vd "1e6 1e8"        T_LIST  vd "1 2 4 8"        VARIANTS  vd "dot_seq dot_partial"
 #   RUNS       so lan do (mac dinh 7, pilot 3)
@@ -44,11 +47,11 @@ t_sweep() {
 if [ -n "${PILOT:-}" ]; then
   OUT_DIR=${OUT_DIR:-results/pilot/$PILOT}
   RUNS=${RUNS:-3}
-  DEF_N="1e4 1e6 1e7"           # thay cho N = 10^8
+  DEF_N="1e4 1e5 3e5 1e6 1e7"   # bo N = 10^8 cho nhanh
 else
   OUT_DIR=${OUT_DIR:-results/raw}
   RUNS=${RUNS:-7}
-  DEF_N="1e4 1e6 1e8"
+  DEF_N="1e4 1e5 3e5 1e6 1e7 1e8"
 fi
 
 csv() { echo $* | tr ' ' ','; }

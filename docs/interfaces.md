@@ -208,7 +208,19 @@ build/release/bin/dot_bench --n 1e4,1e6 --threads 1,4 --runs 3 > a.csv   # gọi
 
 | Script | Việc |
 |---|---|
-| `scripts/run_dot.sh` | Chạy E6 theo khuôn `run_hist.sh`: đặt sẵn `OMP_PROC_BIND=close`, `OMP_PLACES=cores`, `OMP_DYNAMIC=false`; dãy thread giống `run_hist.sh` (1, 2, 4, 6, 8, 12, ... đến `nproc`, thêm `P`); lô chính 7 lần đo, n = 10^4, 10^6, 10^8, ghi môi trường bằng `collect_env.sh`; `PILOT=<a\|b\|c>` thu nhỏ: 3 lần đo, n tối đa 10^7. Ghi đè bằng `N_LIST`, `T_LIST`, `VARIANTS`, `RUNS`, `P`, `MIN_TIME`, `MAX_MB`. `scripts/run_all.sh` tự gọi file này. Tham số E6 hiện là đề xuất tạm, chưa đối chiếu KE_HOACH |
+| `scripts/run_dot.sh` | Chạy E6 theo khuôn `run_hist.sh`: đặt sẵn `OMP_PROC_BIND=close`, `OMP_PLACES=cores`, `OMP_DYNAMIC=false`; dãy thread giống `run_hist.sh` (1, 2, 4, 6, 8, 12, ... đến `nproc`, thêm `P`); lô chính 7 lần đo, n = 10^4, 10^5, 3·10^5, 10^6, 10^7, 10^8, ghi môi trường bằng `collect_env.sh`; `PILOT=<a\|b\|c>` thu nhỏ: 3 lần đo, bỏ n = 10^8. Ghi đè bằng `N_LIST`, `T_LIST`, `VARIANTS`, `RUNS`, `P`, `MIN_TIME`, `MAX_MB`. `scripts/run_all.sh` tự gọi file này. Tham số E6 hiện là đề xuất tạm, chưa đối chiếu KE_HOACH |
+
+**Chọn n cho E6.** Tích vô hướng bị giới hạn bởi tốc độ đọc dữ liệu, nên n được chọn để 2 vector (8·n byte) rơi vào các tầng bộ nhớ khác nhau. Quét thử trên máy C (`dot_partial`, 8 thread, 3 lần đo) cho thấy 4 vùng:
+
+| n | Dữ liệu | Vùng | Máy C, 8 thread |
+|---|---|---|---|
+| 10^4 | 80 KB | chi phí mở vùng song song lấn át | 10 GB/s, speedup 1,1 |
+| 10^5 | 800 KB | speedup đang tăng | 24 GB/s |
+| 3·10^5 | 2,4 MB | **đỉnh**: mỗi thread khoảng 300 KB, vừa L2 riêng của core | 41 GB/s, speedup 4,8 |
+| 10^6 | 8 MB | L3 | 28 GB/s |
+| 10^7, 10^8 | 80 MB, 800 MB | RAM | 20–30 GB/s |
+
+Với 1 thread các vùng khác nhau rất ít (6–9 GB/s) vì bản tuần tự bị giới hạn bởi chuỗi phép cộng phụ thuộc, không phải bởi bộ nhớ. Đỉnh L2 dịch theo số thread (thêm core thì thêm L2). 10^6, 10^7, 10^8 trùng với E1 để so sánh với histogram. Đây là số quét thử, không phải số liệu báo cáo.
 
 Tùy chọn của `dot_bench` (danh sách cách nhau bằng dấu phẩy):
 
